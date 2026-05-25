@@ -26,6 +26,10 @@ class PatchMonError(Exception):
         super().__init__(f"PatchMon error {status_code}: {message}")
 
 
+class PatchMonConfigError(Exception):
+    """Raised for missing or invalid configuration (not an HTTP error)."""
+
+
 class PatchMonClient:
     """
     Async HTTP client for PatchMon.
@@ -54,6 +58,7 @@ class PatchMonClient:
             base_url=endpoint,
             timeout=30.0,
             headers={"Accept": "application/json"},
+            trust_env=False,
         )
 
     async def close(self) -> None:
@@ -133,10 +138,9 @@ class PatchMonClient:
 
     def _integration_auth(self) -> tuple[str, str]:
         if not self._token_key or not self._token_secret:
-            raise PatchMonError(
-                0,
+            raise PatchMonConfigError(
                 "PATCHMON_TOKEN_KEY and PATCHMON_TOKEN_SECRET are required for "
-                "Integration API tools (read-only host/package data).",
+                "Integration API tools (read-only host/package data)."
             )
         return (self._token_key, self._token_secret)
 

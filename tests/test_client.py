@@ -6,7 +6,7 @@ import pytest
 import respx
 import httpx
 
-from patchmon_mcp.client import PatchMonClient, PatchMonError
+from patchmon_mcp.client import PatchMonClient, PatchMonConfigError, PatchMonError
 
 from .conftest import (
     ENDPOINT,
@@ -154,7 +154,7 @@ async def test_integration_api_missing_creds_raises(monkeypatch):
     monkeypatch.delenv("PATCHMON_TOKEN_SECRET", raising=False)
 
     client = PatchMonClient()
-    with pytest.raises(PatchMonError) as exc_info:
+    with pytest.raises(PatchMonConfigError) as exc_info:
         await client.request_integration("GET", "/hosts")
 
     assert "TOKEN_KEY" in str(exc_info.value)

@@ -19,7 +19,7 @@ from typing import Any, Optional
 import structlog
 from fastmcp import FastMCP
 
-from .client import PatchMonClient, PatchMonError, get_client
+from .client import PatchMonClient, PatchMonConfigError, PatchMonError, get_client
 from .observability import emit_metric
 
 log = structlog.get_logger(__name__)
@@ -103,7 +103,7 @@ async def list_hosts() -> dict:
         )
         return {"hosts": hosts, "summary": {"total": total, "online": online,
                 "reboot_required": reboot_req, "with_updates": with_updates}}
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("list_hosts", e)
 
 
@@ -118,7 +118,7 @@ async def get_host(host_id: str) -> dict:
     try:
         resp, _ = await _timed_integration(client, "GET", f"/hosts/{host_id}/info")
         return resp.json()
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_host", e)
 
 
@@ -140,7 +140,7 @@ async def get_host_packages(host_id: str, pending_only: bool = True) -> dict:
         packages = data if isinstance(data, list) else data.get("packages", data)
         log.info("get_host_packages", host_id=host_id, count=len(packages), pending_only=pending_only)
         return {"host_id": host_id, "packages": packages, "count": len(packages)}
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_host_packages", e)
 
 
@@ -155,7 +155,7 @@ async def get_host_stats(host_id: str) -> dict:
     try:
         resp, _ = await _timed_integration(client, "GET", f"/hosts/{host_id}/stats")
         return resp.json()
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_host_stats", e)
 
 
@@ -175,7 +175,7 @@ async def get_package_reports(host_id: str, limit: int = 20) -> dict:
         data = resp.json()
         reports = data if isinstance(data, list) else data.get("reports", data)
         return {"host_id": host_id, "reports": reports}
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_package_reports", e)
 
 
@@ -192,7 +192,7 @@ async def get_agent_queue(host_id: str) -> dict:
     try:
         resp, _ = await _timed_integration(client, "GET", f"/hosts/{host_id}/agent_queue")
         return resp.json()
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_agent_queue", e)
 
 
@@ -216,7 +216,7 @@ async def preview_patch_schedule(host_id: str) -> dict:
             client, "GET", f"/patching/preview-run?host_id={host_id}"
         )
         return resp.json()
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("preview_patch_schedule", e)
 
 
@@ -260,7 +260,7 @@ async def trigger_dry_run(host_id: str, package_name: str) -> dict:
             {"duration_s": duration, "host_id": host_id, "run_id": run_id},
         )
         return data
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("trigger_dry_run", e)
 
 
@@ -318,7 +318,7 @@ async def trigger_patch(
             },
         )
         return data
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("trigger_patch", e)
 
 
@@ -359,7 +359,7 @@ async def get_patch_run(run_id: str) -> dict:
             },
         )
         return data
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_patch_run", e)
 
 
@@ -389,7 +389,7 @@ async def list_patch_runs(
         path = "/patching/runs?" + "&".join(params)
         resp, _ = await _timed_admin(client, "GET", path)
         return resp.json()
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("list_patch_runs", e)
 
 
@@ -427,7 +427,7 @@ async def approve_patch_run(run_id: str) -> dict:
             },
         )
         return data
-    except PatchMonError as e:
+    except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("approve_patch_run", e)
 
 
