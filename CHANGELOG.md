@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.1] — 2026-05-27
+
+### Fixed
+
+- **Observability: stdout bug** — `configure_logging()` was falling back to
+  `sys.stdout` when `LOG_FILE` was unset, injecting log lines into the MCP JSON-RPC
+  stream. Now always writes to `sys.stderr`.
+- **Observability: log directory creation** — added `os.makedirs` before `FileHandler`
+  so the default log path `/opt/appdata/patchmon-mcp/logs/patchmon-mcp.log` is created
+  at startup. Previously, startup would crash silently on first log write.
+- **Observability: bare LOG_FILE guard** — added `if log_dir:` guard before `os.makedirs`
+  to prevent `FileNotFoundError` when `LOG_FILE` is set to a bare filename.
+
+### Changed
+
+- `configure_logging()` now activates both stderr and file handlers simultaneously.
+  File handler is added alongside stderr when `LOG_FILE` is set; stderr is always on.
+- Default `LOG_FILE` path baked in: `/opt/appdata/patchmon-mcp/logs/patchmon-mcp.log`.
+  Override with the `LOG_FILE` env var; omit to use the default.
+
 ## [0.1.0] — 2026-05-25
 
 ### Added
