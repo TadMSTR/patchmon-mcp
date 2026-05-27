@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "patchmon-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "FastMCP Python MCP server wrapping the PatchMon REST API"
 readme = "README.md"
 requires-python = ">=3.11"

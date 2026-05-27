@@ -18,7 +18,7 @@ import structlog
 
 def configure_logging() -> None:
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-    log_file = os.getenv("LOG_FILE")
+    log_file = os.getenv("LOG_FILE", "/opt/appdata/patchmon-mcp/logs/patchmon-mcp.log")
 
     shared_processors = [
         structlog.stdlib.add_log_level,
@@ -27,17 +27,27 @@ def configure_logging() -> None:
         structlog.processors.StackInfoRenderer(),
     ]
 
+    stderr_handler: logging.Handler = logging.StreamHandler(sys.stderr)
+    handlers: list[logging.Handler] = [stderr_handler]
     if log_file:
-        handler: logging.Handler = logging.FileHandler(log_file)
-    else:
-        handler = logging.StreamHandler(sys.stdout)
-
-    handler.setFormatter(logging.Formatter("%(message)s"))
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        handlers.append(logging.FileHandler(log_file))
 
     root_logger = logging.getLogger()
     root_logger.handlers.clear()
-    root_logger.addHandler(handler)
+    for h in handlers:
+        root_logger.addHandler(h)
     root_logger.setLevel(getattr(logging, log_level, logging.INFO))
+
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.processors.JSONRenderer(),
+        ],
+        foreign_pre_chain=shared_processors,
+    )
+    for h in handlers:
+        h.setFormatter(formatter)
 
     structlog.configure(
         processors=[
@@ -49,15 +59,6 @@ def configure_logging() -> None:
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
-
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.processors.JSONRenderer(),
-        ],
-        foreign_pre_chain=shared_processors,
-    )
-    handler.setFormatter(formatter)
 
 
 # ---------------------------------------------------------------------------
