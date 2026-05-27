@@ -30,7 +30,9 @@ def configure_logging() -> None:
     stderr_handler: logging.Handler = logging.StreamHandler(sys.stderr)
     handlers: list[logging.Handler] = [stderr_handler]
     if log_file:
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        log_dir = os.path.dirname(log_file)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
         handlers.append(logging.FileHandler(log_file))
 
     root_logger = logging.getLogger()
