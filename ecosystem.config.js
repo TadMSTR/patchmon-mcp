@@ -8,7 +8,7 @@ module.exports = {
   apps: [
     {
       name: "patchmon-mcp",
-      script: "python3",
+      script: "/home/ted/repos/personal/patchmon-mcp/.venv/bin/python3",
       args: ["-m", "patchmon_mcp.server"],
       cwd: "/home/ted/repos/personal/patchmon-mcp",
       interpreter: "none",
