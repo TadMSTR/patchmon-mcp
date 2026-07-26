@@ -16,6 +16,7 @@ import structlog
 # Logging
 # ---------------------------------------------------------------------------
 
+
 def configure_logging() -> None:
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
     log_file = os.getenv("LOG_FILE", "/opt/appdata/patchmon-mcp/logs/patchmon-mcp.log")
@@ -108,7 +109,9 @@ def get_tracer():
         return None
     try:
         from opentelemetry import trace  # type: ignore
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter  # type: ignore
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+            OTLPSpanExporter,  # type: ignore
+        )
         from opentelemetry.sdk.resources import Resource  # type: ignore
         from opentelemetry.sdk.trace import TracerProvider  # type: ignore
         from opentelemetry.sdk.trace.export import BatchSpanProcessor  # type: ignore
@@ -153,13 +156,14 @@ async def _get_nats():
 # Unified metric emission
 # ---------------------------------------------------------------------------
 
+
 async def emit_metric(
     measurement: str,
     tags: dict[str, str],
     fields: dict[str, Any],
 ) -> None:
     """Write a data point to InfluxDB and/or publish to NATS (both opt-in)."""
-    write_api, bucket = _get_influx()
+    write_api, _bucket = _get_influx()
     if write_api is not None:
         try:
             from influxdb_client_3 import Point  # type: ignore

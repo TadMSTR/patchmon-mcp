@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Standard CI workflow (`ci.yml`) — ruff (pinned `ruff==0.16.0`) + pytest + pip-audit + build.
+- Release workflow (`release.yml`) — a `vX.Y.Z` tag cuts a source-only GitHub Release.
+- Explicit ruff config (`select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]`) pinning the
+  enforced ruleset against ruff's widening defaults.
+
 ## [0.1.1] — 2026-05-27
 
 ### Fixed

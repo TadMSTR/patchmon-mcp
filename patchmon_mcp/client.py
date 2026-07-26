@@ -9,8 +9,8 @@ JWT is refreshed automatically on 401 or when approaching expiry.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 import structlog
@@ -51,8 +51,8 @@ class PatchMonClient:
         self._token_key = os.environ.get("PATCHMON_TOKEN_KEY")
         self._token_secret = os.environ.get("PATCHMON_TOKEN_SECRET")
 
-        self._jwt: Optional[str] = None
-        self._jwt_expires_at: Optional[datetime] = None
+        self._jwt: str | None = None
+        self._jwt_expires_at: datetime | None = None
 
         self._http = httpx.AsyncClient(
             base_url=endpoint,
@@ -80,19 +80,17 @@ class PatchMonClient:
         # expires_at is ISO 8601 with Z suffix
         expires_at_str: str = data.get("expires_at", "")
         if expires_at_str:
-            self._jwt_expires_at = datetime.fromisoformat(
-                expires_at_str.replace("Z", "+00:00")
-            )
+            self._jwt_expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
         else:
             # Fallback: treat as 1 hour from now
-            self._jwt_expires_at = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+            self._jwt_expires_at = datetime.now(tz=UTC) + timedelta(hours=1)
         self._jwt = token
         log.debug("jwt_refreshed", expires_at=expires_at_str)
         return token
 
     async def _get_jwt(self) -> str:
         """Return a valid JWT, refreshing if expired or absent."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         if (
             self._jwt is not None
             and self._jwt_expires_at is not None
@@ -166,6 +164,7 @@ class PatchMonClient:
 # Helpers
 # ------------------------------------------------------------------
 
+
 def _raise_for_status(resp: httpx.Response) -> None:
     """Raise PatchMonError for 4xx/5xx, preserving the JSON error message."""
     if resp.is_success:
@@ -178,7 +177,7 @@ def _raise_for_status(resp: httpx.Response) -> None:
 
 
 # Module-level singleton — created on first import, shared across tool calls.
-_client: Optional[PatchMonClient] = None
+_client: PatchMonClient | None = None
 
 
 def get_client() -> PatchMonClient:

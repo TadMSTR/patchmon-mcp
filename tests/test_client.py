@@ -2,25 +2,25 @@
 Tests for PatchMonClient — JWT caching, refresh on 401, auth injection.
 """
 
+import httpx
 import pytest
 import respx
-import httpx
 
 from patchmon_mcp.client import PatchMonClient, PatchMonConfigError, PatchMonError
 
 from .conftest import (
-    ENDPOINT,
-    LOGIN_RESPONSE,
-    HOST_ID,
-    PATCH_RUN_QUEUED,
-    DRY_RUN_QUEUED,
     APPROVE_RESPONSE,
+    DRY_RUN_QUEUED,
+    ENDPOINT,
+    HOST_ID,
+    LOGIN_RESPONSE,
+    PATCH_RUN_QUEUED,
 )
-
 
 # ---------------------------------------------------------------------------
 # JWT caching and refresh
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_jwt_is_cached_across_calls(mock_env):
@@ -34,12 +34,12 @@ async def test_jwt_is_cached_across_calls(mock_env):
         )
 
         client = PatchMonClient()
-        await client.request_admin("POST", "/patching/trigger", json={
-            "host_id": HOST_ID, "patch_type": "patch_all"
-        })
-        await client.request_admin("POST", "/patching/trigger", json={
-            "host_id": HOST_ID, "patch_type": "patch_all"
-        })
+        await client.request_admin(
+            "POST", "/patching/trigger", json={"host_id": HOST_ID, "patch_type": "patch_all"}
+        )
+        await client.request_admin(
+            "POST", "/patching/trigger", json={"host_id": HOST_ID, "patch_type": "patch_all"}
+        )
 
         assert login.call_count == 1, "Should only login once when token is valid"
         await client.close()
@@ -65,9 +65,9 @@ async def test_jwt_refreshes_on_401(mock_env):
         )
 
         client = PatchMonClient()
-        resp = await client.request_admin("POST", "/patching/trigger", json={
-            "host_id": HOST_ID, "patch_type": "patch_all"
-        })
+        resp = await client.request_admin(
+            "POST", "/patching/trigger", json={"host_id": HOST_ID, "patch_type": "patch_all"}
+        )
 
         assert login.call_count == 2, "Should re-login after 401"
         assert trigger.call_count == 2, "Should retry after re-login"
@@ -79,12 +79,8 @@ async def test_jwt_refreshes_on_401(mock_env):
 async def test_jwt_not_in_integration_request(mock_env):
     """Integration API requests use Basic Auth, not JWT."""
     with respx.mock(base_url=ENDPOINT, assert_all_called=False) as mock:
-        mock.post("/api/v1/auth/login").mock(
-            return_value=httpx.Response(200, json=LOGIN_RESPONSE)
-        )
-        hosts_req = mock.get("/api/v1/api/hosts").mock(
-            return_value=httpx.Response(200, json=[])
-        )
+        mock.post("/api/v1/auth/login").mock(return_value=httpx.Response(200, json=LOGIN_RESPONSE))
+        hosts_req = mock.get("/api/v1/api/hosts").mock(return_value=httpx.Response(200, json=[]))
 
         client = PatchMonClient()
         await client.request_integration("GET", "/hosts")
@@ -102,17 +98,15 @@ async def test_jwt_not_in_integration_request(mock_env):
 async def test_admin_request_sends_jwt_bearer(mock_env):
     """Admin API requests include Authorization: Bearer <token>."""
     with respx.mock(base_url=ENDPOINT) as mock:
-        mock.post("/api/v1/auth/login").mock(
-            return_value=httpx.Response(200, json=LOGIN_RESPONSE)
-        )
+        mock.post("/api/v1/auth/login").mock(return_value=httpx.Response(200, json=LOGIN_RESPONSE))
         trigger = mock.post("/api/v1/patching/trigger").mock(
             return_value=httpx.Response(200, json=PATCH_RUN_QUEUED)
         )
 
         client = PatchMonClient()
-        await client.request_admin("POST", "/patching/trigger", json={
-            "host_id": HOST_ID, "patch_type": "patch_all"
-        })
+        await client.request_admin(
+            "POST", "/patching/trigger", json={"host_id": HOST_ID, "patch_type": "patch_all"}
+        )
 
         req = trigger.calls[0].request
         auth = req.headers.get("authorization", "")
@@ -124,15 +118,16 @@ async def test_admin_request_sends_jwt_bearer(mock_env):
 # Error handling
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_4xx_raises_patchmon_error(mock_env):
     """Non-401 4xx responses raise PatchMonError with the error message."""
     with respx.mock(base_url=ENDPOINT) as mock:
-        mock.post("/api/v1/auth/login").mock(
-            return_value=httpx.Response(200, json=LOGIN_RESPONSE)
-        )
+        mock.post("/api/v1/auth/login").mock(return_value=httpx.Response(200, json=LOGIN_RESPONSE))
         mock.post("/api/v1/patching/trigger").mock(
-            return_value=httpx.Response(400, json={"error": "patch_type must be patch_all or patch_package"})
+            return_value=httpx.Response(
+                400, json={"error": "patch_type must be patch_all or patch_package"}
+            )
         )
 
         client = PatchMonClient()
@@ -165,13 +160,12 @@ async def test_integration_api_missing_creds_raises(monkeypatch):
 # Dry-run workflow
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_dry_run_uses_correct_body(mock_env):
     """trigger_dry_run sends dry_run=True and patch_type=patch_package."""
     with respx.mock(base_url=ENDPOINT) as mock:
-        mock.post("/api/v1/auth/login").mock(
-            return_value=httpx.Response(200, json=LOGIN_RESPONSE)
-        )
+        mock.post("/api/v1/auth/login").mock(return_value=httpx.Response(200, json=LOGIN_RESPONSE))
         trigger = mock.post("/api/v1/patching/trigger").mock(
             return_value=httpx.Response(200, json=DRY_RUN_QUEUED)
         )
@@ -180,11 +174,16 @@ async def test_dry_run_uses_correct_body(mock_env):
         await client.request_admin(
             "POST",
             "/patching/trigger",
-            json={"host_id": HOST_ID, "patch_type": "patch_package",
-                  "package_name": "curl", "dry_run": True},
+            json={
+                "host_id": HOST_ID,
+                "patch_type": "patch_package",
+                "package_name": "curl",
+                "dry_run": True,
+            },
         )
 
         import json
+
         body = json.loads(trigger.calls[0].request.content)
         assert body["dry_run"] is True
         assert body["patch_type"] == "patch_package"
@@ -196,10 +195,8 @@ async def test_dry_run_uses_correct_body(mock_env):
 async def test_approve_creates_new_run(mock_env):
     """approve_patch_run calls POST /patching/runs/:id/approve and returns new run ID."""
     with respx.mock(base_url=ENDPOINT) as mock:
-        mock.post("/api/v1/auth/login").mock(
-            return_value=httpx.Response(200, json=LOGIN_RESPONSE)
-        )
-        approve = mock.post(f"/api/v1/patching/runs/dry-xyz/approve").mock(
+        mock.post("/api/v1/auth/login").mock(return_value=httpx.Response(200, json=LOGIN_RESPONSE))
+        approve = mock.post("/api/v1/patching/runs/dry-xyz/approve").mock(
             return_value=httpx.Response(200, json=APPROVE_RESPONSE)
         )
 
