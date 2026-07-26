@@ -14,7 +14,7 @@ Tool surface:
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from fastmcp import FastMCP
@@ -39,6 +39,7 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _tool_error(tool: str, err: Exception) -> dict:
     log.error("tool_error", tool=tool, error=str(err))
@@ -71,6 +72,7 @@ async def _timed_integration(
 # Integration API tools  (read-only, Basic Auth)
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool
 async def list_hosts() -> dict:
     """List all enrolled hosts with update counts, reboot flag, and last check-in.
@@ -86,8 +88,7 @@ async def list_hosts() -> dict:
         online = sum(1 for h in hosts if h.get("status") == "online")
         reboot_req = sum(1 for h in hosts if h.get("needs_reboot") or h.get("NeedsReboot"))
         with_updates = sum(
-            1 for h in hosts
-            if (h.get("updates_available") or h.get("UpdatesAvailable") or 0) > 0
+            1 for h in hosts if (h.get("updates_available") or h.get("UpdatesAvailable") or 0) > 0
         )
         log.info("list_hosts", total=total, online=online, duration_s=round(duration, 3))
         await emit_metric(
@@ -101,8 +102,15 @@ async def list_hosts() -> dict:
                 "hosts_with_updates_count": with_updates,
             },
         )
-        return {"hosts": hosts, "summary": {"total": total, "online": online,
-                "reboot_required": reboot_req, "with_updates": with_updates}}
+        return {
+            "hosts": hosts,
+            "summary": {
+                "total": total,
+                "online": online,
+                "reboot_required": reboot_req,
+                "with_updates": with_updates,
+            },
+        }
     except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("list_hosts", e)
 
@@ -138,7 +146,9 @@ async def get_host_packages(host_id: str, pending_only: bool = True) -> dict:
         resp, _ = await _timed_integration(client, "GET", path)
         data = resp.json()
         packages = data if isinstance(data, list) else data.get("packages", data)
-        log.info("get_host_packages", host_id=host_id, count=len(packages), pending_only=pending_only)
+        log.info(
+            "get_host_packages", host_id=host_id, count=len(packages), pending_only=pending_only
+        )
         return {"host_id": host_id, "packages": packages, "count": len(packages)}
     except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("get_host_packages", e)
@@ -200,6 +210,7 @@ async def get_agent_queue(host_id: str) -> dict:
 # Admin API tools  (JWT auth — patching)
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool
 async def preview_patch_schedule(host_id: str) -> dict:
     """Preview when the next patch run would be scheduled for a host.
@@ -212,9 +223,7 @@ async def preview_patch_schedule(host_id: str) -> dict:
     """
     client = get_client()
     try:
-        resp, _ = await _timed_admin(
-            client, "GET", f"/patching/preview-run?host_id={host_id}"
-        )
+        resp, _ = await _timed_admin(client, "GET", f"/patching/preview-run?host_id={host_id}")
         return resp.json()
     except (PatchMonError, PatchMonConfigError) as e:
         return _tool_error("preview_patch_schedule", e)
@@ -268,7 +277,7 @@ async def trigger_dry_run(host_id: str, package_name: str) -> dict:
 async def trigger_patch(
     host_id: str,
     patch_type: str,
-    package_name: Optional[str] = None,
+    package_name: str | None = None,
 ) -> dict:
     """Trigger an actual patch run on a host. This makes real changes.
 
@@ -365,8 +374,8 @@ async def get_patch_run(run_id: str) -> dict:
 
 @mcp.tool
 async def list_patch_runs(
-    host_id: Optional[str] = None,
-    status: Optional[str] = None,
+    host_id: str | None = None,
+    status: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict:
@@ -434,6 +443,7 @@ async def approve_patch_run(run_id: str) -> dict:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     mcp.run()

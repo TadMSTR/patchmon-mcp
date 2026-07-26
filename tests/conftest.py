@@ -1,9 +1,6 @@
 """Test fixtures for patchmon-mcp."""
 
 import pytest
-import respx
-import httpx
-
 
 ENDPOINT = "http://localhost:3005"
 
@@ -84,6 +81,7 @@ APPROVE_RESPONSE = {
 def reset_client_singleton():
     """Reset the module-level client singleton between tests."""
     import patchmon_mcp.client as client_module
+
     client_module._client = None
     yield
     client_module._client = None
