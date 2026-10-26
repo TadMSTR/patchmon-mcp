@@ -1,5 +1,9 @@
 # patchmon-mcp
 
+> **Retired (2026-10-26).** This server is no longer deployed or maintained, and the repository
+> is archived. Patching is done in the PatchMon UI. The code is left here for reference only;
+> it will not receive fixes or dependency updates.
+
 FastMCP Python MCP server wrapping the [PatchMon](https://patchmon.net) REST API.
 
 Gives an AI agent structured access to apt patch management across PatchMon-enrolled hosts:
